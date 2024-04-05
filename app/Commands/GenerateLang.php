@@ -10,7 +10,7 @@ class GenerateLang extends Command
 {
     protected string $from = '';
     protected array $targets = [];
-    protected string $specificFile = '';
+    protected string|null $specificFile = null;
     protected string $onlyJson = '';
     protected string $langDir = '';
     protected string $sourcePath = '';
