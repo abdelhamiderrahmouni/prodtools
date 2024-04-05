@@ -24,7 +24,7 @@ class GenerateLang extends Command
         $this->targets = $this->argument('to');
         $this->specificFile = $this->option('file');
         $this->onlyJson = $this->option('json');
-        $this->langDir = $this->option('lang-dir');
+        $this->langDir = $this->option('dir');
         $this->sourcePath = "{$this->langDir}/{$this->from}";
 
         if (!$this->onlyJson && !File::isDirectory($this->sourcePath)) {
