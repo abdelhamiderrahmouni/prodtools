@@ -27,6 +27,24 @@ Laravel Zero was created by [Nuno Maduro](https://github.com/nunomaduro) and [Ow
 
 ## Documentation
 
+### Installation
+
+### build standalone application
+Run the following command to build a standalone application:
+```bash
+php production-tools app:build prodtools
+```
+
+You will then be able to execute it directly:
+```bash
+./builds/prodtools
+```
+or on Windows:
+```bash
+C:\application\path> php builds\prodtools # this is still not ready for windows
+```
+
+
 For full documentation, visit [laravel-zero.com](https://laravel-zero.com/).
 
 ## Support the development
