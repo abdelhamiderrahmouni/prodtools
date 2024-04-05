@@ -16,8 +16,10 @@
     ],
     "require": {
         "php": "^8.1",
-        "nunomaduro/termwind": "^1.15.1",
         "ext-zip": "*",
+        "guzzlehttp/guzzle": "^7.5",
+        "illuminate/http": "^10.0",
+        "nunomaduro/termwind": "^1.15.1",
         "spatie/image-optimizer": "^1.7"
     },
     "require-dev": {
