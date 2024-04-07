@@ -2,33 +2,83 @@
 
 ------
 
-<p align="center">
-    <img title="Laravel Zero" height="100" src="https://raw.githubusercontent.com/laravel-zero/docs/master/images/logo/laravel-zero-readme.png" />
-</p>
+<h1 align="center" style="font-size: 56px; margin: 0;">
+    Prodtools
+</h1>
 
 <p align="center">
-  <a href="https://github.com/laravel-zero/framework/actions"><img src="https://github.com/laravel-zero/laravel-zero/actions/workflows/tests.yml/badge.svg" alt="Build Status"></img></a>
-  <a href="https://packagist.org/packages/laravel-zero/framework"><img src="https://img.shields.io/packagist/dt/laravel-zero/framework.svg" alt="Total Downloads"></a>
-  <a href="https://packagist.org/packages/laravel-zero/framework"><img src="https://img.shields.io/packagist/v/laravel-zero/framework.svg?label=stable" alt="Latest Stable Version"></a>
-  <a href="https://packagist.org/packages/laravel-zero/framework"><img src="https://img.shields.io/packagist/l/laravel-zero/framework.svg" alt="License"></a>
+  <a href="https://packagist.org/packages/abdelhamiderrahmouni/prodtools"><img src="https://img.shields.io/packagist/dt/abdelhamiderrahmouni/prodtools.svg" alt="Total Downloads"></a>
+  <a href="https://packagist.org/packages/abdelhamiderrahmouni/prodtools"><img src="https://img.shields.io/packagist/v/abdelhamiderrahmouni/prodtools.svg?label=stable" alt="Latest Stable Version"></a>
+  <a href="https://packagist.org/packages/abdelhamiderrahmouni/prodtools"><img src="https://img.shields.io/packagist/l/abdelhamiderrahmouni/prodtools.svg" alt="License"></a>
 </p>
 
-<h4> <center>This is a <bold>community project</bold> and not an official Laravel one </center></h4>
+<h4> <center>A set of command line tools to help me ship code faster, made with laravel zero.</center></h4>
 
-Laravel Zero was created by [Nuno Maduro](https://github.com/nunomaduro) and [Owen Voke](https://github.com/owenvoke), and is a micro-framework that provides an elegant starting point for your console application. It is an **unofficial** and customized version of Laravel optimized for building command-line applications.
-
-- Built on top of the [Laravel](https://laravel.com) components.
-- Optional installation of Laravel [Eloquent](https://laravel-zero.com/docs/database/), Laravel [Logging](https://laravel-zero.com/docs/logging/) and many others.
-- Supports interactive [menus](https://laravel-zero.com/docs/build-interactive-menus/) and [desktop notifications](https://laravel-zero.com/docs/send-desktop-notifications/) on Linux, Windows & MacOS.
-- Ships with a [Scheduler](https://laravel-zero.com/docs/task-scheduling/) and  a [Standalone Compiler](https://laravel-zero.com/docs/build-a-standalone-application/).
-- Integration with [Collision](https://github.com/nunomaduro/collision) - Beautiful error reporting
-
+Available functionalities :
+- Lang files translation.
+- Assets images optimization.
+- files/folder/project compression
 ------
 
-## Documentation
-
+# Documentation
+## General Use
 ### Installation
+You can install the package via composer:
+```bash
+composer global require abdelhamiderrahmouni/prodtools
+```
+add it to your PATH:
+```bash
+export PATH="$PATH:$HOME/.composer/vendor/bin"
+```
 
+### Usage
+the package offers three main commands:
+
+#### translations
+This command will translate your lang files from the source language to the target language or languages,
+it supports multiple languages and can output the result in JSON format.
+```bash
+prodtools translate <from> <to:multiple languages> [--json]
+```
+
+example:
+The following translates the php files holding the translations from `en` language to `fr` and `ar` languages
+and outputs folders for `ar` and `fr` languages.
+```bash
+prodtools translate en fr ar
+```
+
+The following translates the JSON files holding the translations from `en` language to `fr` and `ar` languages
+and outputs the translations to `ar.json` and `fr.json` files.
+```bash
+prodtools translate en fr ar --json
+```
+You can find more details on [superduper filament starter kit](https://github.com/riodwanto/superduper-filament-starter-kit)
+@riodwanto is the original author of the command, I just added the JSON output feature.
+
+#### Assets optimization
+The idea behind this command came from the need to optimize the images in the assets folder before shipping the application.
+As doing that manually is a tedious task, I decided to automate it.
+
+This command will optimize the images in the assets folder.
+```bash
+prodtools images:comporess <path> # defaults to public/assets
+```
+
+#### Project compression
+
+This command will compress the project files and folders into a single archive file.
+```bash
+prodtools zipper <path> # defaults to current directory
+```
+
+This commad has an optional `--exclude` flag to specify the files and folders to exclude from the archive.
+```bash
+prodtools zipper --exclude=".git,node_modules,.github,.idea,storage,.env,public/.htaccess"
+```
+
+## Development
 ### build standalone application
 Run the following command to build a standalone application:
 ```bash
@@ -43,15 +93,6 @@ or on Windows:
 ```bash
 C:\application\path> php builds\prodtools # this is still not ready for windows
 ```
-
-
-For full documentation, visit [laravel-zero.com](https://laravel-zero.com/).
-
-## Support the development
-**Do you like this project? Support it by donating**
-
-- PayPal: [Donate](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=66BYDWAT92N6L)
-- Patreon: [Donate](https://www.patreon.com/nunomaduro)
 
 ## License
 
