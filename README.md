@@ -1,7 +1,3 @@
-<a href="https://supportukrainenow.org/"><img src="https://raw.githubusercontent.com/vshymanskyy/StandWithUkraine/main/banner-direct.svg" width="100%"></a>
-
-------
-
 <h1 align="center" style="font-size: 56px; margin: 0;">
     Prodtools
 </h1>
