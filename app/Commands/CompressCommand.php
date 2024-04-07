@@ -8,7 +8,8 @@ use ZipArchive;
 
 class CompressCommand extends Command
 {
-    protected $signature = 'compress {--exclude= : Directories to exclude from the zip}';
+    protected $signature = 'compress {--exclude= : Directories to exclude from the zip}
+                                     {--output-name|name= : The name of the output zip file}';
 
     protected $description = 'Zip your project with ease.';
 
@@ -20,8 +21,12 @@ class CompressCommand extends Command
 
     public $zipPath;
 
+    public string|null $outputFileName = null;
+
     public function handle()
     {
+        $this->outputFileName = $this->option('name');
+
         $this->projectName = basename(getcwd());
 
         $this->projectPath = getcwd();
@@ -104,7 +109,9 @@ class CompressCommand extends Command
     private function initializeZipArchive(): ZipArchive|null
     {
         // Convert folder name to snake case for the zip file name
-        $zipFileName = config('compress.output_file_name') ?? strtolower(preg_replace('/(?<!\ )[A-Z]/', '_$0', $this->projectName));
+        $zipFileName = config('compress.output_file_name')
+            ?? $this->outputFileName
+            ?? strtolower(preg_replace('/(?<!\ )[A-Z]/', '_$0', $this->projectName));
 
         // Check if the folder exists
         if (! file_exists($this->projectPath)) {
