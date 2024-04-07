@@ -9,7 +9,7 @@ use Symfony\Component\Finder\Finder;
 
 class ImageOptimizerCommand extends Command
 {
-    protected $signature = 'images:compress
+    protected $signature = 'images:optimize
                             {path? : The path to the assets folder. Default is in config file (public/assets).}
                             {--details : Display the output of the optimization process.}';
 

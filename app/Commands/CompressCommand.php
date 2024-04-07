@@ -6,9 +6,9 @@ use Illuminate\Console\Scheduling\Schedule;
 use LaravelZero\Framework\Commands\Command;
 use ZipArchive;
 
-class ZipperCommand extends Command
+class CompressCommand extends Command
 {
-    protected $signature = 'zipper {--exclude= : Directories to exclude from the zip}';
+    protected $signature = 'compress {--exclude= : Directories to exclude from the zip}';
 
     protected $description = 'Zip your project with ease.';
 
@@ -98,13 +98,13 @@ class ZipperCommand extends Command
     {
         return $this->option('exclude')
             ? explode(',', $this->option('exclude'))
-            : config('zipper.excludes');
+            : config('compress.excludes');
     }
 
     private function initializeZipArchive(): ZipArchive|null
     {
         // Convert folder name to snake case for the zip file name
-        $zipFileName = config('zipper.output_file_name') ?? strtolower(preg_replace('/(?<!\ )[A-Z]/', '_$0', $this->projectName));
+        $zipFileName = config('compress.output_file_name') ?? strtolower(preg_replace('/(?<!\ )[A-Z]/', '_$0', $this->projectName));
 
         // Check if the folder exists
         if (! file_exists($this->projectPath)) {

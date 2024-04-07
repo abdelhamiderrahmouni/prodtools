@@ -66,12 +66,12 @@ prodtools images:comporess <path> # defaults to public/assets
 
 This command will compress the project files and folders into a single archive file.
 ```bash
-prodtools zipper <path> # defaults to current directory
+prodtools compress <path> # defaults to current directory
 ```
 
 This commad has an optional `--exclude` flag to specify the files and folders to exclude from the archive.
 ```bash
-prodtools zipper --exclude=".git,node_modules,.github,.idea,storage,.env,public/.htaccess"
+prodtools compress --exclude=".git,node_modules,.github,.idea,storage,.env,public/.htaccess"
 ```
 
 ## Development

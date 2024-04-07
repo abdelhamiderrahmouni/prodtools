@@ -6,7 +6,7 @@ use Illuminate\Console\Command;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Http;
 
-class GenerateLang extends Command
+class TranslateCommand extends Command
 {
     protected string $from = '';
     protected array $targets = [];
@@ -15,7 +15,10 @@ class GenerateLang extends Command
     protected string $langDir = '';
     protected string $sourcePath = '';
 
-    protected $signature = 'translate {from} {to*} {--file=} {--json} {--lang-dir|dir=lang : The directory where the language files are stored}';
+    protected $signature = 'translate {from} {to*}
+                            {--file=}
+                            {--json}
+                            {--lang-dir|dir=lang : The directory where the language files are stored}';
     protected $description = 'Translate language files from one language to another using Google Translate';
 
     public function handle()

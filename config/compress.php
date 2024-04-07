@@ -7,5 +7,5 @@ return [
         'node_modules',
     ],
 
-    'zipper.output_file_name' => null,
+    'compress.output_file_name' => null,
 ];
