@@ -17,6 +17,7 @@ class GetRandomImages extends Command
                                        {--amount=5}
                                        {--size=200x200}
                                        {--multi-size}
+                                       {--keep-old|keep}
                                        {--amounts="5,5"]}
                                        {--sizes="200x200,1280x720"}
                                        {--terms=}';
@@ -38,6 +39,7 @@ class GetRandomImages extends Command
         // This needs some deeper research to get the best results
 
         $multiple = $this->option('multi-size');
+        $keepOld = $this->option('keep');
         $outputDirectory = $this->argument('output-directory');
 
         $schemas = [];
@@ -74,7 +76,7 @@ class GetRandomImages extends Command
 
         // get the images
         foreach ($schemas as $schema) {
-            $this->getRandomImages($schema, $outputDirectory);
+            $this->getRandomImages($schema, $outputDirectory, $keepOld);
         }
 
         $this->newLine();
@@ -83,13 +85,15 @@ class GetRandomImages extends Command
         $this->info("Images are stored in: {$path}");
     }
 
-    protected function getRandomImages(array $schema, string $outputDirectory): void
+    protected function getRandomImages(array $schema, string $outputDirectory, bool $keepOld): void
     {
         ['amount' => $amount, 'size' => $size, 'terms' => $terms] = $schema;
 
         $this->comment(PHP_EOL . "Getting $amount random images of size $size, of topic: " . implode(', ', $terms));
 
-        File::deleteDirectory($outputDirectory . $size);
+        if (! $keepOld) {
+            File::deleteDirectory($outputDirectory . DIRECTORY_SEPARATOR . $size);
+        }
 
         $progressBar = $this->output->createProgressBar($amount);
         $progressBar->start();
@@ -99,11 +103,11 @@ class GetRandomImages extends Command
             $url = "https://source.unsplash.com/{$size}/?img=1," . implode(',', $terms);
             $image = file_get_contents($url);
 
-            File::ensureDirectoryExists($outputDirectory . '/' . $size);
-            $filename = Str::uuid();
+            File::ensureDirectoryExists($outputDirectory . DIRECTORY_SEPARATOR . $size);
+            $filename = $outputDirectory . DIRECTORY_SEPARATOR . $size . DIRECTORY_SEPARATOR . Str::uuid() . ".jpg";
 
             File::put(
-                path: "$outputDirectory/{$size}/{$filename}.jpg",
+                path: $filename,
                 contents: $image
             );
 
