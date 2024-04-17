@@ -73,6 +73,28 @@ This commad has an optional `--exclude` flag to specify the files and folders to
 ```bash
 prodtools compress --exclude=".git,node_modules,.github,.idea,storage,.env,public/.htaccess"
 ```
+#### Get Random Images from Unsplash
+This command will download random images from unsplash and save them in the specified folder.
+```bash
+prodtools images:get <folder> --amount "<count>" --size "<width>x<height>" --terms "<search terms>" --multi-size --sizes "<width>x<height>,<width>x<height>,..." --amounts "<count>,<count>,..."
+```
+options:
+- `folder` is the folder where the images will be saved; by default the command will create a folder named local_images in the current path.
+- `amount` is the number of images to download; by default it's 5.
+- `size` is the size of the images to download; by default it's 200x200.
+- `terms` is the search terms to use; by default it's empty.
+- `multi-size` is a flag to download multiple sizes of the images; by default it's false.
+- `sizes` is the sizes of the images to download; by default it's "200x200,1280x720".
+- `amounts` is the number of images to download for each size; by default it's "5,5"
+
+example:
+```bash
+prodtools images:get public/assets/images --amount "10" --size "1920x1080" --terms "nature,animals"
+```
+```bash
+prodtools images:get public/assets/images --multi-size --sizes "1920x1080,1280x720,640x480" --amounts "5,3,2" # make sure the amounts match the sizes count
+```
+
 
 ## Development
 ### build standalone application
