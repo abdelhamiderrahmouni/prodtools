@@ -8,18 +8,19 @@ use ZipArchive;
 
 class CompressCommand extends Command
 {
-    protected $signature = 'compress {--exclude= : Directories to exclude from the zip}
+    protected $signature = 'compress {path? : The path to the folder to compress}
+                                     {--exclude= : Directories to exclude from the zip}
                                      {--output-name|name= : The name of the output zip file}';
 
     protected $description = 'Zip your project with ease.';
 
-    public $excludes = [];
+    public array $excludes = [];
 
-    public $projectName = '';
+    public string $projectName = '';
 
-    public $projectPath;
+    public string $projectPath;
 
-    public $zipPath;
+    public string $zipPath;
 
     public string|null $outputFileName = null;
 
@@ -27,9 +28,9 @@ class CompressCommand extends Command
     {
         $this->outputFileName = $this->option('name');
 
-        $this->projectName = basename(getcwd());
+        $this->projectPath = $this->argument('path') ?? getcwd();
 
-        $this->projectPath = getcwd();
+        $this->projectName = basename($this->projectPath);
 
         $this->excludes = $this->getExcludes();
 

@@ -61,6 +61,12 @@ This command will optimize the images in the assets folder.
 ```bash
 prodtools images:comporess <path> # defaults to public/assets
 ```
+options:
+- `path` is the path to the folder containing the images to optimize; by default it's public/assets.
+flags:
+- `--keep` to keep the original images; by default it's false.
+- `--prefix` to add a prefix to the original folder's name; by default it's "old_".
+- `--details` to display the optimization details; by default it's false.
 
 #### Project compression
 
@@ -68,6 +74,11 @@ This command will compress the project files and folders into a single archive f
 ```bash
 prodtools compress <path> # defaults to current directory
 ```
+options:
+- `path` is the path to the folder to compress; by default it's the current directory.
+flags:
+- `--exclude` is the files and folders to exclude from the archive; by default it's ".git,node_modules".
+- `--output` is the output file name; by default it's FolderName in snake case like "folder_name.zip".
 
 This commad has an optional `--exclude` flag to specify the files and folders to exclude from the archive.
 ```bash
@@ -80,12 +91,13 @@ prodtools images:get <folder> --amount "<count>" --size "<width>x<height>" --ter
 ```
 options:
 - `folder` is the folder where the images will be saved; by default the command will create a folder named local_images in the current path.
-- `amount` is the number of images to download; by default it's 5.
-- `size` is the size of the images to download; by default it's 200x200.
-- `terms` is the search terms to use; by default it's empty.
-- `multi-size` is a flag to download multiple sizes of the images; by default it's false.
-- `sizes` is the sizes of the images to download; by default it's "200x200,1280x720".
-- `amounts` is the number of images to download for each size; by default it's "5,5"
+flags:
+- `--amount` is the number of images to download; by default it's 5.
+- `--size` is the size of the images to download; by default it's 200x200.
+- `--terms` is the search terms to use; by default it's empty.
+- `--multi-size` is a flag to download multiple sizes of the images; by default it's false.
+- `--sizes` is the sizes of the images to download; by default it's "200x200,1280x720".
+- `--amounts` is the number of images to download for each size; by default it's "5,5"
 
 example:
 ```bash
