@@ -63,6 +63,7 @@ prodtools images:comporess <path> # defaults to public/assets
 ```
 options:
 - `path` is the path to the folder containing the images to optimize; by default it's public/assets.
+
 flags:
 - `--keep` to keep the original images; by default it's false.
 - `--prefix` to add a prefix to the original folder's name; by default it's "old_".
@@ -76,6 +77,7 @@ prodtools compress <path> # defaults to current directory
 ```
 options:
 - `path` is the path to the folder to compress; by default it's the current directory.
+
 flags:
 - `--exclude` is the files and folders to exclude from the archive; by default it's ".git,node_modules".
 - `--output` is the output file name; by default it's FolderName in snake case like "folder_name.zip".
@@ -91,6 +93,7 @@ prodtools images:get <folder> --amount "<count>" --size "<width>x<height>" --ter
 ```
 options:
 - `folder` is the folder where the images will be saved; by default the command will create a folder named local_images in the current path.
+
 flags:
 - `--amount` is the number of images to download; by default it's 5.
 - `--size` is the size of the images to download; by default it's 200x200.
