@@ -3,6 +3,7 @@
 namespace App\Commands;
 
 use Illuminate\Console\Scheduling\Schedule;
+use Illuminate\Support\Facades\File;
 use LaravelZero\Framework\Commands\Command;
 use Spatie\ImageOptimizer\OptimizerChainFactory;
 use Symfony\Component\Finder\Finder;
@@ -11,23 +12,39 @@ class ImageOptimizerCommand extends Command
 {
     protected $signature = 'images:optimize
                             {path? : The path to the assets folder. Default is in config file (public/assets).}
+                            {--keep : Keep the original images after optimization.}
+                            {--prefix=old_ : prefix of the original images folder.}
                             {--details : Display the output of the optimization process.}';
 
     protected $description = 'Compress all static images in the provided folder recursively!';
 
-    protected $errors = [];
+    protected array $errors = [];
 
-    protected $assetsDir = '';
+    protected string $assetsDir = '';
+
+    protected bool $keepOriginal = false;
 
     public function handle(): int
     {
         $this->assetsDir = $this->argument('path') ?? config('image-optimizer-command.assets_path');
+
+        $this->keepOriginal = $this->option('keep');
 
         // check if the provided path is a directory
         if (! is_dir($this->assetsDir)) {
             $this->error("The provided path {$this->assetsDir} is not a directory.");
 
             return self::FAILURE;
+        }
+
+        if ($this->keepOriginal) {
+            $originalDir = $this->option('prefix') . $this->assetsDir;
+
+            // Check if the directory exists, if not, attempt to create it
+            //File::ensureDirectoryExists($originalDir);
+            File::copyDirectory($this->assetsDir, $originalDir);
+
+            $this->info("📁 Original images will be kept in {$originalDir}.");
         }
 
         $finder = new Finder();
