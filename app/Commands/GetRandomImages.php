@@ -100,7 +100,7 @@ class GetRandomImages extends Command
 
         foreach (range(1, $amount) as $i) {
 
-            $url = "https://source.unsplash.com/{$size}/?img=1," . implode(',', $terms);
+            $url = "https://source.unsplash.com/{$size}/?" . implode(',', $terms);
             $image = file_get_contents($url);
 
             File::ensureDirectoryExists($outputDirectory . DIRECTORY_SEPARATOR . $size);
