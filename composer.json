@@ -19,6 +19,7 @@
         "ext-zip": "*",
         "guzzlehttp/guzzle": "^7.5",
         "illuminate/http": "^10.0",
+        "illuminate/collections": "^10.0",
         "nunomaduro/termwind": "^1.15.1",
         "spatie/image-optimizer": "^1.7"
     },
