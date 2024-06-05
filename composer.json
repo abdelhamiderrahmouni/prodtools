@@ -17,7 +17,7 @@
     "require": {
         "php": "^8.2",
         "ext-zip": "*",
-        "guzzlehttp/guzzle": "^7.5",
+        "guzzlehttp/guzzle": "^7.8.1",
         "illuminate/collections": "^11.10.0",
         "illuminate/http": "^11.10.0",
         "intervention/image": "^3.6",
@@ -25,7 +25,7 @@
         "spatie/image-optimizer": "^1.7"
     },
     "require-dev": {
-        "laravel/pint": "^1.13",
+        "laravel/pint": "^1.16.0",
         "laravel-zero/framework": "^11.0.0",
         "mockery/mockery": "^1.6",
         "pestphp/pest": "^2.22"
