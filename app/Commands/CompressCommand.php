@@ -10,9 +10,10 @@ class CompressCommand extends Command
 {
     protected $signature = 'compress {path? : The path to the folder to compress}
                                      {--exclude= : Directories to exclude from the zip}
-                                     {--output-name|name= : The name of the output zip file}';
+                                     {--output-name|name= : The name of the output zip file}
+                                     {--chunk-size=60 : The maximum size of each chunk in MB}';
 
-    protected $description = 'Zip your project with ease.';
+    protected $description = 'Zip your project with ease and optional chunking.';
 
     public array $excludes = [];
 
@@ -27,16 +28,11 @@ class CompressCommand extends Command
     public function handle()
     {
         $this->outputFileName = $this->option('name');
-
         $this->projectPath = $this->argument('path') ?? getcwd();
-
         $this->projectName = basename($this->projectPath);
-
         $this->excludes = $this->getExcludes();
+        $chunkSize = $this->option('chunk-size') * 1024 * 1024; // Convert MB to bytes
 
-        $zip = $this->initializeZipArchive();
-
-        // Count the total number of files to be processed
         $totalFiles = count(iterator_to_array(
             new \RecursiveIteratorIterator(
                 new \RecursiveDirectoryIterator($this->projectPath, \FilesystemIterator::SKIP_DOTS),
@@ -45,59 +41,62 @@ class CompressCommand extends Command
             false
         ));
 
-        // Initialize the progress bar
         $progressBar = $this->output->createProgressBar($totalFiles);
         $progressBar->start();
 
-        // Add files to the zip archive
-        $this->addFiles($this->projectPath, $zip, $this->excludes, $progressBar);
-
-        // Finish the progress bar
-        $progressBar->finish();
-
-        // Close the zip archive
-        $zip->close();
-
-        // Provide feedback to the user
-        $this->newLine(2);
-        $this->info("🥳 Project {$this->projectName} has been successfully zipped to {$this->zipPath}");
-    }
-
-    /*
-     * Function to add files to the zip archive and update the progress bar
-     */
-    private function addFiles($dir, $zip, $toExclude, $progressBar): void
-    {
+        $zipIndex = 0;
+        $zip = $this->initializeZipArchive($zipIndex);
+        $currentZipSize = 0;
 
         $files = new \RecursiveIteratorIterator(
-            new \RecursiveDirectoryIterator($dir, \FilesystemIterator::SKIP_DOTS),
+            new \RecursiveDirectoryIterator($this->projectPath, \FilesystemIterator::SKIP_DOTS),
             \RecursiveIteratorIterator::SELF_FIRST
         );
 
         foreach ($files as $file) {
             if ($file->isDir()) {
-                continue; // Skip directories
+                continue;
             }
 
             $filePath = $file->getRealPath();
-            $relativePath = substr($filePath, strlen($dir) + 1);
+            $relativePath = substr($filePath, strlen($this->projectPath) + 1);
 
-            // Check if the file is in an excluded directory
-            $shouldExclude = false;
-            foreach ($toExclude as $exclude) {
-                if (strpos($relativePath, trim($exclude)) === 0) {
-                    $shouldExclude = true;
-                    break;
-                }
+            if ($this->shouldExclude($relativePath) || !is_readable($filePath)) {
+                continue;
             }
 
-            if ($shouldExclude || ! is_readable($filePath)) {
-                continue; // Skip the file if it's in an excluded directory or not readable
+            $fileSize = filesize($filePath);
+            if ($currentZipSize + $fileSize > $chunkSize) {
+                $zip->close();
+                $zipIndex++;
+                $zip = $this->initializeZipArchive($zipIndex);
+                $currentZipSize = 0;
             }
 
             $zip->addFile($filePath, $relativePath);
-            $progressBar->advance(); // Advance the progress bar
+            $currentZipSize += $fileSize;
+
+            if ($zipIndex > 10)
+                exit();
+
+            $progressBar->advance();
         }
+
+        $zip->close();
+        $progressBar->finish();
+
+        $this->newLine(2);
+        $this->info("🥳 Project {$this->projectName} has been successfully zipped to {$this->outputFileName}*.zip in chunks.");
+    }
+
+    private function shouldExclude($relativePath): bool
+    {
+        foreach ($this->excludes as $exclude) {
+            if (strpos($relativePath, trim($exclude)) === 0) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private function getExcludes(): array
@@ -107,23 +106,21 @@ class CompressCommand extends Command
             : config('compress.excludes');
     }
 
-    private function initializeZipArchive(): ZipArchive|null
+    private function initializeZipArchive($index): ZipArchive|null
     {
-        // Convert folder name to snake case for the zip file name
         $zipFileName = config('compress.output_file_name')
             ?? $this->outputFileName
             ?? strtolower(preg_replace('/(?<!\ )[A-Z]/', '_$0', $this->projectName));
 
-        // Check if the folder exists
-        if (! file_exists($this->projectPath)) {
+        $zipFileName .= $index > 0 ? "_part{$index}" : '';
+        $this->zipPath = "{$zipFileName}.zip";
+
+        if (!file_exists($this->projectPath)) {
             $this->error("Folder {$this->projectPath} does not exist.");
             return null;
         }
 
-        // Initialize the zip archive
         $zip = new ZipArchive();
-        $this->zipPath = "{$zipFileName}.zip";
-
         if ($zip->open($this->zipPath, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) {
             $this->error("Cannot open {$this->zipPath}");
             return null;
