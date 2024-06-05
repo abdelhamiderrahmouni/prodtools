@@ -18,8 +18,8 @@
         "php": "^8.2",
         "ext-zip": "*",
         "guzzlehttp/guzzle": "^7.5",
-        "illuminate/collections": "^11.0",
-        "illuminate/http": "^11.0",
+        "illuminate/collections": "^11.10.0",
+        "illuminate/http": "^11.10.0",
         "intervention/image": "^3.6",
         "nunomaduro/termwind": "^2.0.1",
         "spatie/image-optimizer": "^1.7"
