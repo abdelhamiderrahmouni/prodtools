@@ -61,10 +61,10 @@ This command will optimize the images in the assets folder.
 ```bash
 prodtools images:comporess <path> # defaults to public/assets
 ```
-options:
+Options :
 - `path` is the path to the folder containing the images to optimize; by default it's public/assets.
 
-flags:
+Arguments :
 - `--keep` to keep the original images; by default it's false.
 - `--prefix` to add a prefix to the original folder's name; by default it's "old_".
 - `--details` to display the optimization details; by default it's false.
@@ -75,26 +75,32 @@ This command will compress the project files and folders into a single archive f
 ```bash
 prodtools compress <path> # defaults to current directory
 ```
-options:
+Options :
 - `path` is the path to the folder to compress; by default it's the current directory.
 
-flags:
-- `--exclude` is the files and folders to exclude from the archive; by default it's ".git,node_modules".
-- `--output` is the output file name; by default it's FolderName in snake case like "folder_name.zip".
+Arguments :
+- `--exclude` mention the files and folders to exclude from the archive; by default it's ".git,node_modules".
+- `--include` Directories and files to make sure they are included in the zip.
+- `--output-name|name` specify the output file name; by default it's FolderName in snake case like "folder_name.zip".
+- `--chunk-size` The maximum size of each chunk in MB, 0 for no chunking.
+- `--excludes_file` A file containing directories and files to exclude from the zip (should be in the root of the project path) by default it will look for `.prodtools_compress_excludes`.
 
-This commad has an optional `--exclude` flag to specify the files and folders to exclude from the archive.
 ```bash
+prodtools compress # compress the current directory, this will look for .prodtools_compress_excludes file in the root of the project and exclude the files and folders mentioned in it.
 prodtools compress --exclude=".git,node_modules,.github,.idea,storage,.env,public/.htaccess"
+prodtools compress --include="node_modules" # compress the current directory and include the node_modules folder.
+prodtools compress --output-name="my_project.zip" # compress the current directory and name the output file my_project.zip.
+prodtools compress --chunk-size="10" # compress the current directory and split the output file into chunks of 10MB.
 ```
 #### Get Random Images from Unsplash
 This command will download random images from unsplash and save them in the specified folder.
 ```bash
 prodtools images:get <folder> --amount "<count>" --size "<width>x<height>" --terms "<search terms>" --multi-size --sizes "<width>x<height>,<width>x<height>,..." --amounts "<count>,<count>,..."
 ```
-options:
+Options :
 - `folder` is the folder where the images will be saved; by default the command will create a folder named local_images in the current path.
 
-flags:
+Arguments :
 - `--amount` is the number of images to download; by default it's 5.
 - `--size` is the size of the images to download; by default it's 200x200.
 - `--terms` is the search terms to use; by default it's empty.

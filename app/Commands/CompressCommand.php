@@ -9,9 +9,11 @@ use ZipArchive;
 class CompressCommand extends Command
 {
     protected $signature = 'compress {path? : The path to the folder to compress}
-                                     {--exclude= : Directories to exclude from the zip}
+                                     {--exclude= : Directories and files to exclude from the zip}
+                                     {--include= : Directories and files to make sure they are included in the zip}
                                      {--output-name|name= : The name of the output zip file}
-                                     {--chunk-size=60 : The maximum size of each chunk in MB}';
+                                     {--chunk-size= : The maximum size of each chunk in MB, 0 for no chunking}
+                                     {--excludes_file= : A file containing directories and files to exclude from the zip (should be relative to the project path)}';
 
     protected $description = 'Zip your project with ease and optional chunking.';
 
@@ -27,11 +29,14 @@ class CompressCommand extends Command
 
     public function handle()
     {
+        $this->validateOptions();
+
         $this->outputFileName = $this->option('name');
         $this->projectPath = $this->argument('path') ?? getcwd();
         $this->projectName = basename($this->projectPath);
         $this->excludes = $this->getExcludes();
-        $chunkSize = $this->option('chunk-size') * 1024 * 1024; // Convert MB to bytes
+
+        $chunkSize = ($this->option('chunk-size') ?? 99999999) * 1024 * 1024; // Convert MB to bytes
 
         $totalFiles = count(iterator_to_array(
             new \RecursiveIteratorIterator(
@@ -86,7 +91,11 @@ class CompressCommand extends Command
         $progressBar->finish();
 
         $this->newLine(2);
-        $this->info("🥳 Project {$this->projectName} has been successfully zipped to {$this->outputFileName}*.zip in chunks.");
+
+        if ($chunkSize === 99999999)
+            $this->info("🥳 Project {$this->projectName} has been successfully zipped to {$this->outputFileName}*.zip in chunks.");
+        else
+            $this->info("🥳 Project {$this->projectName} has been successfully zipped to {$this->outputFileName}.zip.");
     }
 
     private function shouldExclude($relativePath): bool
@@ -101,9 +110,34 @@ class CompressCommand extends Command
 
     private function getExcludes(): array
     {
-        return $this->option('exclude')
-            ? explode(',', $this->option('exclude'))
-            : config('compress.excludes');
+        $includes = $this->getIncludes();
+
+        $excludesFile = $this->projectPath . '/' . ($this->option('excludes_file') ?? '.prodtools_compress_excludes');
+        if(file_exists($excludesFile) && !$this->option('exclude'))
+        {
+            $excludes = file($excludesFile, FILE_IGNORE_NEW_LINES);
+
+            // remove the includes from the excludes
+            return array_diff($excludes, $includes);
+        }
+
+        if ($this->option('exclude'))
+        {
+            $excludes = explode(',', $this->option('exclude'));
+
+            // remove the includes from the excludes
+            return array_diff($excludes, $includes);
+        }
+
+        // remove the includes from the excludes
+        return array_diff(config('compress.excludes'), $includes);
+    }
+
+    private function getIncludes()
+    {
+        return $this->option('include')
+            ? explode(',', $this->option('include'))
+            : [];
     }
 
     private function initializeZipArchive($index): ZipArchive|null
@@ -127,5 +161,19 @@ class CompressCommand extends Command
         }
 
         return $zip;
+    }
+
+    private function validateOptions()
+    {
+        if ($this->option('chunk-size') && !is_numeric($this->option('chunk-size'))) {
+            $this->error('Chunk size must be a number.');
+            exit();
+        }
+
+        if ($this->option('exclude') && $this->option('excludes_file'))
+        {
+            $this->error('You cannot use both --exclude and --excludes_file options at the same time.');
+            exit();
+        }
     }
 }
