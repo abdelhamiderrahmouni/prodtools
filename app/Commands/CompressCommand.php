@@ -32,8 +32,8 @@ class CompressCommand extends Command
     {
         $this->validateOptions();
 
-        $this->outputFileName = $this->option('name');
         $this->projectPath = $this->argument('path') ?? getcwd();
+        $this->outputFileName = $this->option('name') ?? str()->afterLast($this->projectPath, '/');
         $this->projectName = basename($this->projectPath);
         $this->excludes = $this->getExcludes();
 
