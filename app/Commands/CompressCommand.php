@@ -13,7 +13,8 @@ class CompressCommand extends Command
                                      {--include= : Directories and files to make sure they are included in the zip}
                                      {--output-name|name= : The name of the output zip file}
                                      {--chunk-size= : The maximum size of each chunk in MB, 0 for no chunking}
-                                     {--excludes_file= : A file containing directories and files to exclude from the zip (should be relative to the project path)}';
+                                     {--excludes_file= : A file containing directories and files to exclude from the zip (should be relative to the project path)}
+                                     {--append-excludes= : Directories and files to append to the excludes array or file}';
 
     protected $description = 'Zip your project with ease and optional chunking.';
 
@@ -113,9 +114,12 @@ class CompressCommand extends Command
         $includes = $this->getIncludes();
 
         $excludesFile = $this->projectPath . '/' . ($this->option('excludes_file') ?? '.prodtools_compress_excludes');
+
         if(file_exists($excludesFile) && !$this->option('exclude'))
         {
             $excludes = file($excludesFile, FILE_IGNORE_NEW_LINES);
+
+            $excludes = array_merge($excludes, $this->getAppendedExcludes());
 
             // remove the includes from the excludes
             return array_diff($excludes, $includes);
@@ -125,12 +129,21 @@ class CompressCommand extends Command
         {
             $excludes = explode(',', $this->option('exclude'));
 
+            $excludes = array_merge($excludes, $this->getAppendedExcludes());
+
             // remove the includes from the excludes
             return array_diff($excludes, $includes);
         }
 
+        $excludes = array_merge(config('compress.excludes'), $this->getAppendedExcludes());
         // remove the includes from the excludes
-        return array_diff(config('compress.excludes'), $includes);
+        return array_diff($excludes, $includes);
+    }
+
+    private function getAppendedExcludes()
+    {
+        if ($this->option('append-excludes'))
+            return explode(',', $this->option('append-excludes'));
     }
 
     private function getIncludes()
