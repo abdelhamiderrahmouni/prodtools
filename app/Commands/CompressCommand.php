@@ -13,8 +13,9 @@ class CompressCommand extends Command
                                      {--include= : Directories and files to make sure they are included in the zip}
                                      {--output-name|name= : The name of the output zip file}
                                      {--chunk-size= : The maximum size of each chunk in MB, 0 for no chunking}
-                                     {--excludes_file= : A file containing directories and files to exclude from the zip (should be relative to the project path)}
-                                     {--append-excludes= : Directories and files to append to the excludes array or file}';
+                                     {--excludes-file= : A file containing directories and files to exclude from the zip (should be relative to the project path)}
+                                     {--append-excludes= : Directories and files to append to the excludes array or file}
+                                     {--generate-excludes-file|generate : Generate the excludes file for the compress command}';
 
     protected $description = 'Zip your project with ease and optional chunking.';
 
@@ -30,6 +31,11 @@ class CompressCommand extends Command
 
     public function handle()
     {
+        if ($this->option('generate')) {
+            $this->call('compress:generate-excludes-file', ['path' => $this->argument('path')]);
+            return;
+        }
+
         $this->validateOptions();
 
         $this->projectPath = $this->argument('path') ?? getcwd();
@@ -113,7 +119,7 @@ class CompressCommand extends Command
     {
         $includes = $this->getIncludes();
 
-        $excludesFile = $this->projectPath . '/' . ($this->option('excludes_file') ?? '.prodtools_compress_excludes');
+        $excludesFile = $this->projectPath . '/' . ($this->option('excludes-file') ?? '.prodtools_compress_excludes');
 
         if(file_exists($excludesFile) && !$this->option('exclude'))
         {
@@ -144,6 +150,8 @@ class CompressCommand extends Command
     {
         if ($this->option('append-excludes'))
             return explode(',', $this->option('append-excludes'));
+
+        return [];
     }
 
     private function getIncludes()
@@ -183,9 +191,9 @@ class CompressCommand extends Command
             exit();
         }
 
-        if ($this->option('exclude') && $this->option('excludes_file'))
+        if ($this->option('exclude') && $this->option('excludes-file'))
         {
-            $this->error('You cannot use both --exclude and --excludes_file options at the same time.');
+            $this->error('You cannot use both --exclude and --excludes-file options at the same time.');
             exit();
         }
     }
