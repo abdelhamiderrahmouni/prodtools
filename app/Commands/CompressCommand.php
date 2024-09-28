@@ -17,7 +17,8 @@ class CompressCommand extends Command
                                      {--chunk-size=0 : The maximum size of each chunk in MB, 0 for no chunking}
                                      {--excludes-file= : A file containing directories and files to exclude from the zip (should be relative to the project path)}
                                      {--append-excludes=* : Directories and files to append to the excludes array or file}
-                                     {--generate-excludes-file|generate : Generate the excludes file for the compress command}';
+                                     {--generate-excludes-file|generate : Generate the excludes file for the compress command}
+                                     {--debug : Show detailed debug information}';
 
 
     protected $description = 'Zip your project with ease and optional chunking.';
@@ -70,6 +71,7 @@ class CompressCommand extends Command
     private function compressProject(): void
     {
         $chunkSize = ($this->option('chunk-size') ?: self::DEFAULT_CHUNK_SIZE) * 1024 * 1024; // Convert MB to bytes
+        $debug = $this->option('debug');
 
         $finder = new Finder();
         $finder->files()->in($this->projectPath);
@@ -79,10 +81,16 @@ class CompressCommand extends Command
         }
 
         $totalFiles = iterator_count($finder);
+        $totalSteps = $totalFiles * 2; // Two passes
 
-        $this->info("Starting first pass: Estimating compression ratio...");
-        $progressBar = $this->output->createProgressBar($totalFiles);
+        $progressBar = $this->output->createProgressBar($totalSteps);
+        $progressBar->setFormat(' %percent:3s%% [%bar%] %elapsed:6s%/%estimated:-6s%');
         $progressBar->start();
+
+        if ($debug) {
+            $this->newLine();
+            $this->info("Starting first pass: Estimating compression ratio...");
+        }
 
         // First pass: estimate compression ratios
         $files = [];
@@ -109,14 +117,12 @@ class CompressCommand extends Command
 
         $compressionRatio = $totalCompressedSize / $totalUncompressedSize;
 
-        $progressBar->finish();
-        $this->newLine();
+        if ($debug) {
+            $this->newLine();
+            $this->info("Starting second pass: Creating zip files...");
+        }
 
         // Second pass: create actual zip files
-        $this->info("Starting second pass: Creating zip files...");
-        $progressBar = $this->output->createProgressBar($totalFiles);
-        $progressBar->start();
-
         $zipIndex = 0;
         $currentEstimatedSize = 0;
         $filesToAdd = [];
@@ -157,14 +163,17 @@ class CompressCommand extends Command
 
         $this->info($successMessage);
 
-        // Debug information
-        $this->newLine();
-        $this->info("Debug Information:");
-        $this->info("Chunk size: " . $this->formatBytes($chunkSize));
-        $this->info("Total files processed: $totalFiles");
-        $this->info("Number of zip files created: " . ($zipIndex + 1));
-        $this->info("Estimated compression ratio: " . round($compressionRatio, 4));
+        if ($debug) {
+            // Debug information
+            $this->newLine();
+            $this->info("Debug Information:");
+            $this->info("Chunk size: " . $this->formatBytes($chunkSize));
+            $this->info("Total files processed: $totalFiles");
+            $this->info("Number of zip files created: " . ($zipIndex + 1));
+            $this->info("Estimated compression ratio: " . round($compressionRatio, 4));
+        }
     }
+
     private function addFilesToZip(ZipArchive $zip, array $files): void
     {
         foreach ($files as $file) {
