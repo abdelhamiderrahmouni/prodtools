@@ -109,7 +109,12 @@ class CompressCommand extends Command
         $progressBar->finish();
 
         $this->newLine(2);
-        $this->info("🥳 Project has been successfully zipped to {$this->outputFileName}*.zip" . ($zipIndex > 0 ? " in chunks." : "."));
+
+        $successMessage = $zipIndex > 0
+            ? "🥳 Project has been successfully zipped to {$this->outputFileName}*.zip in chunks."
+            : "🥳 Project has been successfully zipped to {$this->outputFileName}.zip.";
+
+        $this->info($successMessage);
     }
 
     private function getExcludes(): array
