@@ -5,29 +5,27 @@ namespace App\Commands;
 use Illuminate\Console\Scheduling\Schedule;
 use LaravelZero\Framework\Commands\Command;
 use ZipArchive;
+use Illuminate\Support\Facades\File;
+use Symfony\Component\Finder\Finder;
 
 class CompressCommand extends Command
 {
     protected $signature = 'compress {path? : The path to the folder to compress}
-                                     {--exclude= : Directories and files to exclude from the zip}
-                                     {--include= : Directories and files to make sure they are included in the zip}
+                                     {--exclude=* : Directories and files to exclude from the zip}
+                                     {--include=* : Directories and files to make sure they are included in the zip}
                                      {--output-name|name= : The name of the output zip file}
-                                     {--chunk-size= : The maximum size of each chunk in MB, 0 for no chunking}
+                                     {--chunk-size=0 : The maximum size of each chunk in MB, 0 for no chunking}
                                      {--excludes-file= : A file containing directories and files to exclude from the zip (should be relative to the project path)}
-                                     {--append-excludes= : Directories and files to append to the excludes array or file}
+                                     {--append-excludes=* : Directories and files to append to the excludes array or file}
                                      {--generate-excludes-file|generate : Generate the excludes file for the compress command}';
 
     protected $description = 'Zip your project with ease and optional chunking.';
 
-    public array $excludes = [];
-
-    public string $projectName = '';
-
-    public string $projectPath;
-
-    public string $zipPath;
-
-    public string|null $outputFileName = null;
+    private array $excludes = [];
+    private string $projectPath;
+    private string $zipPath;
+    private ?string $outputFileName = null;
+    private const DEFAULT_CHUNK_SIZE = 2048; // 2GB default chunk size
 
     public function handle()
     {
@@ -36,50 +34,66 @@ class CompressCommand extends Command
             return;
         }
 
-        $this->validateOptions();
+        try {
+            $this->validateOptions();
+            $this->setupProjectDetails();
+            $this->compressProject();
+        } catch (\Exception $e) {
+            $this->error("An error occurred: " . $e->getMessage());
+            return 1;
+        }
+    }
 
+    private function validateOptions(): void
+    {
+        if ($this->option('chunk-size') && !is_numeric($this->option('chunk-size'))) {
+            throw new \InvalidArgumentException('Chunk size must be a number.');
+        }
+
+        if ($this->option('exclude') && $this->option('excludes-file')) {
+            throw new \InvalidArgumentException('You cannot use both --exclude and --excludes-file options at the same time.');
+        }
+    }
+
+    private function setupProjectDetails(): void
+    {
         $this->projectPath = $this->argument('path') ?? getcwd();
-        $this->outputFileName = $this->option('name') ?? str()->afterLast($this->projectPath, '/');
-        $this->projectName = basename($this->projectPath);
+        $this->outputFileName = $this->option('name') ?? basename($this->projectPath);
         $this->excludes = $this->getExcludes();
 
-        $chunkSize = ($this->option('chunk-size') ?? 99999999) * 1024 * 1024; // Convert MB to bytes
+        if (!File::isDirectory($this->projectPath)) {
+            throw new \InvalidArgumentException("Folder {$this->projectPath} does not exist.");
+        }
+    }
 
-        $totalFiles = count(iterator_to_array(
-            new \RecursiveIteratorIterator(
-                new \RecursiveDirectoryIterator($this->projectPath, \FilesystemIterator::SKIP_DOTS),
-                \RecursiveIteratorIterator::SELF_FIRST
-            ),
-            false
-        ));
+    private function compressProject(): void
+    {
+        $chunkSize = ($this->option('chunk-size') ?: self::DEFAULT_CHUNK_SIZE) * 1024 * 1024; // Convert MB to bytes
+
+        $finder = new Finder();
+        $finder->files()->in($this->projectPath);
+
+        foreach ($this->excludes as $exclude) {
+            $finder->exclude($exclude);
+        }
+
+        $totalFiles = iterator_count($finder);
 
         $progressBar = $this->output->createProgressBar($totalFiles);
         $progressBar->start();
 
         $zipIndex = 0;
-        $zip = $this->initializeZipArchive($zipIndex);
         $currentZipSize = 0;
 
-        $files = new \RecursiveIteratorIterator(
-            new \RecursiveDirectoryIterator($this->projectPath, \FilesystemIterator::SKIP_DOTS),
-            \RecursiveIteratorIterator::SELF_FIRST
-        );
+        $zip = $this->initializeZipArchive($zipIndex);
 
-        foreach ($files as $file) {
-            if ($file->isDir()) {
-                continue;
-            }
-
+        foreach ($finder as $file) {
             $filePath = $file->getRealPath();
-            $relativePath = substr($filePath, strlen($this->projectPath) + 1);
+            $relativePath = $this->getRelativePath($filePath);
 
-            if ($this->shouldExclude($relativePath) || !is_readable($filePath)) {
-                continue;
-            }
-
-            $fileSize = filesize($filePath);
+            $fileSize = $file->getSize();
             if ($currentZipSize + $fileSize > $chunkSize) {
-                $zip->close();
+                $this->finalizeZip($zip);
                 $zipIndex++;
                 $zip = $this->initializeZipArchive($zipIndex);
                 $currentZipSize = 0;
@@ -88,113 +102,53 @@ class CompressCommand extends Command
             $zip->addFile($filePath, $relativePath);
             $currentZipSize += $fileSize;
 
-            if ($zipIndex > 10)
-                exit();
-
             $progressBar->advance();
         }
 
-        $zip->close();
+        $this->finalizeZip($zip);
         $progressBar->finish();
 
         $this->newLine(2);
-
-        if ($chunkSize === 99999999)
-            $this->info("🥳 Project {$this->projectName} has been successfully zipped to {$this->outputFileName}*.zip in chunks.");
-        else
-            $this->info("🥳 Project {$this->projectName} has been successfully zipped to {$this->outputFileName}.zip.");
-    }
-
-    private function shouldExclude($relativePath): bool
-    {
-        foreach ($this->excludes as $exclude) {
-            if (strpos($relativePath, trim($exclude)) === 0) {
-                return true;
-            }
-        }
-        return false;
+        $this->info("🥳 Project has been successfully zipped to {$this->outputFileName}*.zip" . ($zipIndex > 0 ? " in chunks." : "."));
     }
 
     private function getExcludes(): array
     {
-        $includes = $this->getIncludes();
-
+        $includes = $this->option('include');
         $excludesFile = $this->projectPath . '/' . ($this->option('excludes-file') ?? '.prodtools_compress_excludes');
 
-        if(file_exists($excludesFile) && !$this->option('exclude'))
-        {
-            $excludes = file($excludesFile, FILE_IGNORE_NEW_LINES);
-
-            $excludes = array_merge($excludes, $this->getAppendedExcludes());
-
-            // remove the includes from the excludes
-            return array_diff($excludes, $includes);
+        if (File::exists($excludesFile) && !$this->option('exclude')) {
+            $excludes = File::lines($excludesFile)->map(fn($line) => trim($line))->toArray();
+        } elseif ($this->option('exclude')) {
+            $excludes = $this->option('exclude');
+        } else {
+            $excludes = config('compress.excludes', []);
         }
 
-        if ($this->option('exclude'))
-        {
-            $excludes = explode(',', $this->option('exclude'));
-
-            $excludes = array_merge($excludes, $this->getAppendedExcludes());
-
-            // remove the includes from the excludes
-            return array_diff($excludes, $includes);
-        }
-
-        $excludes = array_merge(config('compress.excludes'), $this->getAppendedExcludes());
-        // remove the includes from the excludes
+        $excludes = array_merge($excludes, $this->option('append-excludes'));
         return array_diff($excludes, $includes);
     }
 
-    private function getAppendedExcludes()
+    private function initializeZipArchive(int $index): ZipArchive
     {
-        if ($this->option('append-excludes'))
-            return explode(',', $this->option('append-excludes')) ?? [];
-
-        return [];
-    }
-
-    private function getIncludes()
-    {
-        return $this->option('include')
-            ? explode(',', $this->option('include'))
-            : [];
-    }
-
-    private function initializeZipArchive($index): ZipArchive|null
-    {
-        $zipFileName = config('compress.output_file_name')
-            ?? $this->outputFileName
-            ?? strtolower(preg_replace('/(?<!\ )[A-Z]/', '_$0', $this->projectName));
-
-        $zipFileName .= $index > 0 ? "_part{$index}" : '';
+        $zipFileName = $this->outputFileName . ($index > 0 ? "_part{$index}" : '');
         $this->zipPath = "{$zipFileName}.zip";
-
-        if (!file_exists($this->projectPath)) {
-            $this->error("Folder {$this->projectPath} does not exist.");
-            return null;
-        }
 
         $zip = new ZipArchive();
         if ($zip->open($this->zipPath, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) {
-            $this->error("Cannot open {$this->zipPath}");
-            return null;
+            throw new \RuntimeException("Cannot open {$this->zipPath}");
         }
 
         return $zip;
     }
 
-    private function validateOptions()
+    private function finalizeZip(ZipArchive $zip): void
     {
-        if ($this->option('chunk-size') && !is_numeric($this->option('chunk-size'))) {
-            $this->error('Chunk size must be a number.');
-            exit();
-        }
+        $zip->close();
+    }
 
-        if ($this->option('exclude') && $this->option('excludes-file'))
-        {
-            $this->error('You cannot use both --exclude and --excludes-file options at the same time.');
-            exit();
-        }
+    private function getRelativePath(string $filePath): string
+    {
+        return ltrim(str_replace($this->projectPath, '', $filePath), '/');
     }
 }
