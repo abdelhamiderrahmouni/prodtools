@@ -19,6 +19,7 @@ class CompressCommand extends Command
                                      {--append-excludes=* : Directories and files to append to the excludes array or file}
                                      {--generate-excludes-file|generate : Generate the excludes file for the compress command}';
 
+
     protected $description = 'Zip your project with ease and optional chunking.';
 
     private array $excludes = [];
@@ -79,33 +80,73 @@ class CompressCommand extends Command
 
         $totalFiles = iterator_count($finder);
 
+        $this->info("Starting first pass: Estimating compression ratio...");
         $progressBar = $this->output->createProgressBar($totalFiles);
         $progressBar->start();
 
-        $zipIndex = 0;
-        $currentZipSize = 0;
-
-        $zip = $this->initializeZipArchive($zipIndex);
+        // First pass: estimate compression ratios
+        $files = [];
+        $totalUncompressedSize = 0;
+        $tempZip = new ZipArchive();
+        $tempZipPath = tempnam(sys_get_temp_dir(), 'temp_zip_');
+        $tempZip->open($tempZipPath, ZipArchive::CREATE);
 
         foreach ($finder as $file) {
             $filePath = $file->getRealPath();
             $relativePath = $this->getRelativePath($filePath);
-
             $fileSize = $file->getSize();
-            if ($currentZipSize + $fileSize > $chunkSize) {
-                $this->finalizeZip($zip);
-                $zipIndex++;
-                $zip = $this->initializeZipArchive($zipIndex);
-                $currentZipSize = 0;
-            }
 
-            $zip->addFile($filePath, $relativePath);
-            $currentZipSize += $fileSize;
+            $tempZip->addFile($filePath, $relativePath);
+            $files[] = ['path' => $filePath, 'relative' => $relativePath, 'size' => $fileSize];
+            $totalUncompressedSize += $fileSize;
 
             $progressBar->advance();
         }
 
-        $this->finalizeZip($zip);
+        $tempZip->close();
+        $totalCompressedSize = filesize($tempZipPath);
+        unlink($tempZipPath);
+
+        $compressionRatio = $totalCompressedSize / $totalUncompressedSize;
+
+        $progressBar->finish();
+        $this->newLine();
+
+        // Second pass: create actual zip files
+        $this->info("Starting second pass: Creating zip files...");
+        $progressBar = $this->output->createProgressBar($totalFiles);
+        $progressBar->start();
+
+        $zipIndex = 0;
+        $currentEstimatedSize = 0;
+        $filesToAdd = [];
+
+        $zip = $this->initializeZipArchive($zipIndex);
+
+        foreach ($files as $file) {
+            $estimatedCompressedSize = $file['size'] * $compressionRatio;
+
+            if ($currentEstimatedSize + $estimatedCompressedSize > $chunkSize && !empty($filesToAdd)) {
+                $this->addFilesToZip($zip, $filesToAdd);
+                $this->finalizeZip($zip);
+                $zipIndex++;
+                $zip = $this->initializeZipArchive($zipIndex);
+                $currentEstimatedSize = 0;
+                $filesToAdd = [];
+            }
+
+            $filesToAdd[] = $file;
+            $currentEstimatedSize += $estimatedCompressedSize;
+
+            $progressBar->advance();
+        }
+
+        // Add any remaining files
+        if (!empty($filesToAdd)) {
+            $this->addFilesToZip($zip, $filesToAdd);
+            $this->finalizeZip($zip);
+        }
+
         $progressBar->finish();
 
         $this->newLine(2);
@@ -115,6 +156,33 @@ class CompressCommand extends Command
             : "🥳 Project has been successfully zipped to {$this->outputFileName}.zip.";
 
         $this->info($successMessage);
+
+        // Debug information
+        $this->newLine();
+        $this->info("Debug Information:");
+        $this->info("Chunk size: " . $this->formatBytes($chunkSize));
+        $this->info("Total files processed: $totalFiles");
+        $this->info("Number of zip files created: " . ($zipIndex + 1));
+        $this->info("Estimated compression ratio: " . round($compressionRatio, 4));
+    }
+    private function addFilesToZip(ZipArchive $zip, array $files): void
+    {
+        foreach ($files as $file) {
+            $zip->addFile($file['path'], $file['relative']);
+        }
+    }
+
+    private function formatBytes($bytes, $precision = 2): string
+    {
+        $units = ['B', 'KB', 'MB', 'GB', 'TB'];
+
+        $bytes = max($bytes, 0);
+        $pow = floor(($bytes ? log($bytes) : 0) / log(1024));
+        $pow = min($pow, count($units) - 1);
+
+        $bytes /= (1 << (10 * $pow));
+
+        return round($bytes, $precision) . ' ' . $units[$pow];
     }
 
     private function getExcludes(): array
