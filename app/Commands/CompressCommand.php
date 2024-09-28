@@ -149,7 +149,7 @@ class CompressCommand extends Command
     private function getAppendedExcludes()
     {
         if ($this->option('append-excludes'))
-            return explode(',', $this->option('append-excludes'));
+            return explode(',', $this->option('append-excludes')) ?? [];
 
         return [];
     }
